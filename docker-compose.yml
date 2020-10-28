@@ -1,0 +1,70 @@
+version: '3'
+services:
+ 
+  # Nginx instance controlling traffic to each service
+  #
+  nginx:
+    restart: always
+    build:
+      context: nginx
+      args:
+        - HOSTNAME=${HOSTNAME}
+    ports:
+      - 80:80
+      - 443:443
+    container_name: docker_nginx
+    volumes:
+      - ./nginx/letsencrypt:/usr/share/nginx/html
+      - ./certbot/etc:/usr/share/keys
+    networks:
+      - public
+
+  # Certbot for SSL automation
+  #
+  certbot:
+    container_name: 'docker_certbot'
+    image: certbot/certbot
+    volumes:
+      - ./keys:/var/lib/letsencrypt
+      - ./nginx/letsencrypt:/data/letsencrypt
+      - ./certbot/etc:/etc/letsencrypt
+      - ./certbot/log:/var/log/letsencrypt
+    networks:
+      - public
+    depends_on:
+      - nginx
+
+  postgres:
+    container_name: 'docker_postgres'
+    image: postgres:12.4
+    volumes:
+      - postgres/data:/var/lib/postgresql/data
+    ports:
+      - 127.0.0.1:5432:5432
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: ${KC_DB_USERNAME}
+      POSTGRES_PASSWORD: ${KC_DB_PASSWORD}
+    networks:
+      - public
+  
+  keycloak:
+    container_name: 'docker_keycloak'
+    image: quay.io/keycloak/keycloak:10.0.1
+    environment:
+      DB_VENDOR: POSTGRES
+      DB_ADDR: postgres
+      DB_DATABASE: keycloak
+      DB_SCHEMA: public
+      DB_USER: ${KC_DB_USERNAME}
+      DB_PASSWORD: ${KC_DB_PASSWORD}
+      KEYCLOAK_USER: ${KC_ADMIN_USERNAME}
+      KEYCLOAK_PASSWORD: ${KC_ADMIN_PASSWORD}
+    depends_on:
+      - postgres
+    networks:
+      - public
+
+networks:
+  public: 
+    driver: bridge
