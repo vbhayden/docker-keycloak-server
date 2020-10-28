@@ -15,6 +15,17 @@ Setup is pretty straightforward, we need to ensure that Docker is installed and 
 - `sudo ./init-ssl.sh <HOSTNAME>` (see below)
 - `sudo docker-compose up -d --build`
 
+### Setting up the Admin Account
+This uses a newer version of the Keycloak Docker image, but may still require a restart for the admin user to go through.  This is a bit annoying, but if your admin user doesn't work with the initial admin sign-in, then run
+
+```bash
+sudo docker-compose restart keycloak
+sudo docker logs keycloak -f 
+
+# wait until you see the Wildfly (X of Y started successfully) message
+sudo docker-compose restart nginx
+```
+
 ### Setting the Config Values
 The repo comes with an `example.env` file that you will want to (but really should) configure.  Each service has a few properties exposed by default, but you can refer to the Docker Hub docs for each to add more.
 
